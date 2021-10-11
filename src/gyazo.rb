@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require 'base64'
 require 'net/http'
 require 'open3'
 require 'openssl'
@@ -78,13 +79,35 @@ if application_name =~ /(chrom(ium|e)|firefox|iceweasel)/
   xuri = `xdotool windowfocus #{active_window_id}; xdotool key "ctrl+l"; xdotool key "ctrl+c"; xclip -o`
 end
 
+uri = URI.parse("https://vision.googleapis.com/v1/images:annotate?key=#{config['google_cloud_vision_api_key']}")
+https = Net::HTTP.new(uri.host, uri.port)
+https.use_ssl = true
+request = Net::HTTP::Post.new(uri.request_uri)
+request["Content-Type"] = "application/json"
+response = https.request(request, {
+  requests: [{
+    image: {
+      content: Base64.strict_encode64(imagedata)
+    },
+    features: [
+      {
+        type: 'WEB_DETECTION',
+        maxResults: 10
+      }
+    ]
+  }]
+}.to_json)
+response_body = JSON.parse(response.body)
+label_tags = response_body['responses'][0]['webDetection']['bestGuessLabels']
+  .map {|bestGuessLabel| "\##{bestGuessLabel['label'].gsub(' ', '_') } "}
+title = "#{label_tags.join}#{active_window_name}"
 
 # upload
 boundary = '----BOUNDARYBOUNDARY----'
 
 metadata = JSON.generate({
   app: active_window_name,
-  title: active_window_name,
+  title: title,
   url: xuri,
   note: "#{active_window_name}\n#{xuri}"
 })
