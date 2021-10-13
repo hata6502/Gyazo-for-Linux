@@ -98,16 +98,18 @@ response = https.request(request, {
   }]
 }.to_json)
 response_body = JSON.parse(response.body)
-label_tags = response_body['responses'][0]['webDetection']['bestGuessLabels']
-  .map {|bestGuessLabel| "\##{bestGuessLabel['label'].gsub(' ', '_') } "}
-title = "#{label_tags.join}#{active_window_name}"
+label_tags = response_body['responses'][0]['webDetection']['webEntities']
+  .filter {|webEntity| webEntity['score']>=0.8}
+  .map {|webEntity| "\##{webEntity['description'].gsub(' ', '_')} "}
+desc = label_tags.join
 
 # upload
 boundary = '----BOUNDARYBOUNDARY----'
 
 metadata = JSON.generate({
   app: active_window_name,
-  title: title,
+  title: active_window_name,
+  desc: desc,
   url: xuri,
   note: "#{active_window_name}\n#{xuri}"
 })
