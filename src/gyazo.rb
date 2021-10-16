@@ -98,9 +98,11 @@ response = https.request(request, {
   }]
 }.to_json)
 response_body = JSON.parse(response.body)
-label_tags = response_body['responses'][0]['webDetection']['webEntities']
-  .filter {|webEntity| webEntity['score']>=0.8}
-  .map {|webEntity| "\##{webEntity['description'].gsub(' ', '_')} "}
+print(response_body)
+web_entities = response_body.fetch('responses', [{}])[0].fetch('webDetection', {}).fetch('webEntities', [])
+label_tags = web_entities
+  .filter {|web_entity| web_entity.fetch('score', 0) >= 0.6}
+  .map {|web_entity| "\##{web_entity['description'].gsub(' ', '_')} "}
 desc = label_tags.join
 
 # upload
